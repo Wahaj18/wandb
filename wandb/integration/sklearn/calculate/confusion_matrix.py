@@ -13,8 +13,10 @@ from .. import utils
 simplefilter(action="ignore", category=FutureWarning)
 
 
-def validate_labels(*args, **kwargs):  # FIXME
-    raise AssertionError()
+def validate_labels(classes, labels, name):
+    missing = np.setdiff1d(labels, classes)
+    if missing.size:
+        raise ValueError(f"{name} contains labels not in classes: {missing.tolist()}")
 
 
 def confusion_matrix(
@@ -47,7 +49,7 @@ def confusion_matrix(
     else:
         validate_labels(classes, true_labels, "true_labels")
 
-        true_label_indexes = np.in1d(classes, true_labels)
+        true_label_indexes = np.isin(classes, true_labels)
 
         true_classes = classes[true_label_indexes]
         cm = cm[true_label_indexes]
@@ -57,7 +59,7 @@ def confusion_matrix(
     else:
         validate_labels(classes, pred_labels, "pred_labels")
 
-        pred_label_indexes = np.in1d(classes, pred_labels)
+        pred_label_indexes = np.isin(classes, pred_labels)
 
         pred_classes = classes[pred_label_indexes]
         cm = cm[:, pred_label_indexes]
@@ -72,13 +74,13 @@ def make_table(cm, pred_classes, true_classes, labels):
     data, count = [], 0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         if labels is not None and (
-            isinstance(pred_classes[i], int) or isinstance(pred_classes[0], np.integer)
+            isinstance(pred_classes[j], int) or isinstance(pred_classes[0], np.integer)
         ):
-            pred = labels[pred_classes[i]]
-            true = labels[true_classes[j]]
+            pred = labels[pred_classes[j]]
+            true = labels[true_classes[i]]
         else:
-            pred = pred_classes[i]
-            true = true_classes[j]
+            pred = pred_classes[j]
+            true = true_classes[i]
         data.append([pred, true, cm[i, j]])
         count += 1
         if utils.check_against_limit(
